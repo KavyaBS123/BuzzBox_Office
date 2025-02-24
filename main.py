@@ -165,8 +165,12 @@ def show_sentiment_analysis():
                 # Display themes
                 st.subheader("Key Themes")
                 themes = result.get('themes', [])
-                for theme in themes:
-                    st.markdown(f"• {theme}")
+                if themes:
+                    for theme in themes:
+                        if isinstance(theme, str) and theme.strip():
+                            st.markdown(f"🔹 {theme.strip()}")
+                else:
+                    st.info("No themes were identified in this review")
 
                 # Show review statistics
                 st.subheader("Review Analysis")

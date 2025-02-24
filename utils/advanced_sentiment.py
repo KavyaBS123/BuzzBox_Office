@@ -18,19 +18,39 @@ def analyze_review_emotions(text):
             messages=[
                 {
                     "role": "system",
-                    "content": "Analyze the movie review and provide: "
-                    "1. Primary emotion (Joy, Anger, Sadness, Surprise, Disgust) "
-                    "2. Aspect-specific ratings (Storyline, Acting, Visual Effects, Music) on scale 1-5 "
-                    "3. Overall sentiment score (0-1) "
-                    "4. Key themes or highlights "
-                    "Return as JSON with these exact keys: "
-                    "emotion, aspects, sentiment_score, themes"
+                    "content": """Analyze the movie review and provide:
+                    1. Primary emotion (Joy, Anger, Sadness, Surprise, Disgust)
+                    2. Aspect-specific ratings (Storyline, Acting, Visual Effects, Music) on scale 1-5
+                    3. Overall sentiment score (0-1)
+                    4. Key themes or highlights (3-5 main points)
+                    Return as JSON with these exact keys:
+                    {
+                        "emotion": "string",
+                        "aspects": {
+                            "Storyline": integer,
+                            "Acting": integer,
+                            "Visual Effects": integer,
+                            "Music": integer
+                        },
+                        "sentiment_score": float,
+                        "themes": ["string", "string", "string"]
+                    }"""
                 },
                 {"role": "user", "content": text}
             ],
             response_format={"type": "json_object"}
         )
-        return json.loads(response.choices[0].message.content)
+        result = json.loads(response.choices[0].message.content)
+
+        # Ensure themes are properly formatted
+        if 'themes' in result:
+            result['themes'] = [theme.strip() for theme in result['themes'] if theme.strip()]
+            if not result['themes']:
+                result['themes'] = ["No specific themes identified"]
+        else:
+            result['themes'] = ["No themes available"]
+
+        return result
     except Exception as e:
         return {
             "emotion": "neutral",
@@ -41,7 +61,7 @@ def analyze_review_emotions(text):
                 "Music": 3
             },
             "sentiment_score": 0.5,
-            "themes": ["error in analysis"],
+            "themes": ["Error in analysis", str(e)],
             "error": str(e)
         }
 
