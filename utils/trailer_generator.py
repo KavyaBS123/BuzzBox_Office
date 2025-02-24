@@ -2,9 +2,9 @@ import os
 import json
 from moviepy.editor import TextClip, concatenate_videoclips
 from openai import OpenAI
-from PIL import Image
-import requests
-from io import BytesIO
+
+# the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
+# do not change this unless explicitly requested by the user
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "default-key")
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -40,31 +40,7 @@ def generate_trailer_script(movie_description):
             "tagline": "Coming soon..."
         }
 
-def generate_scene_images(scene_description):
-    """Generate an image for a scene using DALL-E 3."""
-    try:
-        response = client.images.generate(
-            model="dall-e-3",
-            prompt=f"Movie scene: {scene_description}. Cinematic, dramatic lighting, high quality",
-            n=1,
-            size="1024x1024"
-        )
-
-        # Download the generated image
-        image_url = response.data[0].url
-        image_response = requests.get(image_url)
-        image = Image.open(BytesIO(image_response.content))
-
-        # Save temporarily
-        os.makedirs("temp", exist_ok=True)
-        temp_path = f"temp/scene_{hash(scene_description)}.png"
-        image.save(temp_path)
-        return temp_path
-    except Exception as e:
-        print(f"Image generation error: {e}")
-        return None
-
-def create_text_clip(text, duration=3, fontsize=70, color='white'):
+def create_text_clip(text, duration=3, fontsize=70, color='white', size=(800, 100)):
     """Create a text clip with fade effects."""
     try:
         txt_clip = TextClip(
@@ -72,9 +48,11 @@ def create_text_clip(text, duration=3, fontsize=70, color='white'):
             fontsize=fontsize,
             color=color,
             bg_color='rgba(0,0,0,0.5)',
-            font="Arial",
-            size=(1024, 100)
-        )
+            font="Arial-Bold",
+            size=size,
+            method='caption'
+        ).set_position('center')
+
         return txt_clip.set_duration(duration).crossfadein(0.5).crossfadeout(0.5)
     except Exception as e:
         print(f"Text clip creation error: {e}")
@@ -83,7 +61,7 @@ def create_text_clip(text, duration=3, fontsize=70, color='white'):
 def generate_trailer(movie_description, duration=30):
     """Generate a complete movie trailer."""
     try:
-        # Create output directory if it doesn't exist
+        # Ensure temp directory exists
         os.makedirs("temp", exist_ok=True)
 
         # Generate script
@@ -92,76 +70,95 @@ def generate_trailer(movie_description, duration=30):
             return {"error": script["error"]}
 
         clips = []
+        total_duration = 0
 
-        # Create opening
-        opening_text = create_text_clip(script["opening_hook"])
-        if opening_text:
-            clips.append(opening_text)
+        # Opening hook with larger text
+        clip = create_text_clip(
+            script["opening_hook"],
+            duration=4,
+            fontsize=80,
+            color='#FFD700',  # Gold color
+            size=(900, 200)
+        )
+        if clip:
+            clips.append(clip)
+            total_duration += 4
 
-        # Add plot setup
-        setup_text = create_text_clip(script["plot_setup"], duration=4)
-        if setup_text:
-            clips.append(setup_text)
+        # Plot setup
+        clip = create_text_clip(
+            script["plot_setup"],
+            duration=5,
+            size=(900, 150)
+        )
+        if clip:
+            clips.append(clip)
+            total_duration += 5
 
-        # Add key scenes
+        # Key scenes
         for scene in script["key_scenes"]:
-            scene_text = create_text_clip(scene)
-            if scene_text:
-                clips.append(scene_text)
+            clip = create_text_clip(scene, duration=3)
+            if clip:
+                clips.append(clip)
+                total_duration += 3
 
-        # Add climax
-        climax_text = create_text_clip(script["climax"])
-        if climax_text:
-            clips.append(climax_text)
+        # Climax with dramatic color
+        clip = create_text_clip(
+            script["climax"],
+            duration=4,
+            color='#FF4444',  # Red color
+            fontsize=75
+        )
+        if clip:
+            clips.append(clip)
+            total_duration += 4
 
-        # Add tagline
-        tagline_text = create_text_clip(
+        # Tagline with special styling
+        clip = create_text_clip(
             script["tagline"],
             duration=4,
             fontsize=90,
-            color='yellow'
+            color='#FFD700',  # Gold color
+            size=(900, 200)
         )
-        if tagline_text:
-            clips.append(tagline_text)
+        if clip:
+            clips.append(clip)
+            total_duration += 4
 
         if not clips:
-            return {"error": "Failed to create any video clips"}
+            return {"error": "Failed to create video clips"}
 
-        # Combine all clips
-        final_clip = concatenate_videoclips(clips)
+        # Combine clips
+        final_clip = concatenate_videoclips(clips, method="compose")
 
-        # Export
+        # Export with progress_bar=False to avoid terminal output
         output_path = "temp/generated_trailer.mp4"
         final_clip.write_videofile(
             output_path,
             fps=24,
             codec='libx264',
-            audio=False
+            audio=False,
+            progress_bar=False
         )
 
-        # Cleanup clips
+        # Clean up clips
         for clip in clips:
             clip.close()
 
         return {
             "success": True,
             "path": output_path,
-            "script": script
+            "script": script,
+            "duration": total_duration
         }
+
     except Exception as e:
-        return {
-            "error": f"Failed to generate trailer: {str(e)}"
-        }
+        return {"error": f"Failed to generate trailer: {str(e)}"}
 
 def cleanup_temp_files():
-    """Clean up any temporary files created during generation."""
+    """Clean up temporary files."""
     try:
-        import glob
         import shutil
-
-        # Remove temporary directory and all its contents
         if os.path.exists("temp"):
             shutil.rmtree("temp")
-
     except Exception as e:
         print(f"Cleanup error: {e}")
