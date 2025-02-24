@@ -2,7 +2,7 @@ import streamlit as st
 import plotly.express as px
 import pandas as pd
 from utils.mock_data import generate_movie_data, generate_demographic_data
-from utils.sentiment import analyze_review_sentiment
+from utils.advanced_sentiment import analyze_review_emotions, get_emotion_color
 
 # Page configuration
 st.set_page_config(
@@ -22,6 +22,12 @@ st.markdown("""
         padding: 1rem;
         border-radius: 0.5rem;
     }
+    .emotion-box {
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin: 0.5rem 0;
+        font-weight: bold;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -32,12 +38,12 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select a page",
-        ["Dashboard", "Sentiment Analysis", "Demographics"]
+        ["Dashboard", "Advanced Sentiment Analysis", "Demographics"]
     )
 
     if page == "Dashboard":
         show_dashboard()
-    elif page == "Sentiment Analysis":
+    elif page == "Advanced Sentiment Analysis":
         show_sentiment_analysis()
     else:
         show_demographics()
@@ -105,31 +111,83 @@ def show_dashboard():
     )
     st.plotly_chart(fig_genre, use_container_width=True)
 
+
 def show_sentiment_analysis():
-    st.header("Real-time Sentiment Analysis")
+    st.header("Advanced Sentiment Analysis")
+
+    # Introduction
+    st.markdown("""
+    This advanced sentiment analysis tool provides:
+    - Emotion Detection (Joy, Anger, Sadness, Surprise, Disgust)
+    - Aspect-Based Analysis (Storyline, Acting, Visual Effects, Music)
+    - Overall Sentiment Score
+    - Key Themes Identification
+    """)
 
     review_text = st.text_area(
         "Enter a movie review to analyze:",
-        height=150
+        height=150,
+        placeholder="Write or paste a movie review here..."
     )
 
     if st.button("Analyze Sentiment"):
         if review_text:
-            with st.spinner("Analyzing sentiment..."):
-                result = analyze_review_sentiment(review_text)
+            with st.spinner("Performing advanced sentiment analysis..."):
+                result = analyze_review_emotions(review_text)
 
-                col1, col2 = st.columns(2)
+                # Display emotion with color
+                emotion = result.get('emotion', 'neutral')
+                color = get_emotion_color(emotion)
+                st.markdown(
+                    f"""
+                    <div class="emotion-box" style="background-color: {color}; color: white;">
+                    Primary Emotion: {emotion}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
-                with col1:
-                    st.subheader("Sentiment Results")
-                    st.write(f"Sentiment: {result.get('sentiment', 'N/A')}")
-                    st.write(f"Confidence: {result.get('confidence', 0):.2f}")
+                # Create columns for different aspects
+                st.subheader("Aspect-Based Analysis")
+                cols = st.columns(4)
+                aspects = result.get('aspects', {})
 
-                with col2:
-                    st.subheader("Key Themes")
-                    themes = result.get('themes', [])
-                    for theme in themes:
-                        st.write(f"• {theme}")
+                for col, (aspect, score) in zip(cols, aspects.items()):
+                    col.metric(aspect, f"{score}/5")
+
+                # Display sentiment score
+                st.metric(
+                    "Overall Sentiment Score",
+                    f"{result.get('sentiment_score', 0.5):.2f}",
+                    delta=None
+                )
+
+                # Display themes
+                st.subheader("Key Themes")
+                themes = result.get('themes', [])
+                for theme in themes:
+                    st.markdown(f"• {theme}")
+
+                # Show review statistics
+                st.subheader("Review Analysis")
+
+                # Create aspect ratings chart
+                aspect_df = pd.DataFrame([
+                    {"Aspect": k, "Rating": v}
+                    for k, v in aspects.items()
+                ])
+
+                fig = px.bar(
+                    aspect_df,
+                    x="Aspect",
+                    y="Rating",
+                    title="Aspect Ratings",
+                    color="Rating",
+                    color_continuous_scale="RdYlGn",
+                    range_y=[0, 5]
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
         else:
             st.warning("Please enter some text to analyze")
 
