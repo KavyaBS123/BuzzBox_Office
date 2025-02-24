@@ -1,6 +1,10 @@
 import streamlit as st
 import plotly.express as px
 import pandas as pd
+import json
+from datetime import datetime
+import asyncio
+import websockets
 from utils.mock_data import generate_movie_data, generate_demographic_data
 from utils.advanced_sentiment import analyze_review_emotions, get_emotion_color
 
@@ -28,8 +32,37 @@ st.markdown("""
         margin: 0.5rem 0;
         font-weight: bold;
     }
+    .live-update {
+        background-color: #4CAF50;
+        color: white;
+        padding: 0.5rem;
+        border-radius: 0.3rem;
+        margin: 0.5rem 0;
+    }
     </style>
     """, unsafe_allow_html=True)
+
+# Initialize session state for live data
+if 'live_data' not in st.session_state:
+    st.session_state.live_data = []
+if 'websocket_connected' not in st.session_state:
+    st.session_state.websocket_connected = False
+
+async def connect_websocket():
+    """Connect to WebSocket server and receive live data."""
+    try:
+        async with websockets.connect('ws://localhost:8000/ws') as websocket:
+            st.session_state.websocket_connected = True
+            while True:
+                data = await websocket.recv()
+                live_data = json.loads(data)
+                st.session_state.live_data.append(live_data)
+                # Keep only last 50 updates
+                if len(st.session_state.live_data) > 50:
+                    st.session_state.live_data.pop(0)
+    except Exception as e:
+        st.session_state.websocket_connected = False
+        print(f"WebSocket connection error: {e}")
 
 def main():
     st.title("🎬 Movie Analysis Portal")
@@ -40,6 +73,13 @@ def main():
         "Select a page",
         ["Dashboard", "Advanced Sentiment Analysis", "Demographics", "Predictive Analytics"]
     )
+
+    # Live data indicator
+    if st.session_state.websocket_connected:
+        st.sidebar.markdown(
+            '<div class="live-update">🔴 Live Updates Active</div>',
+            unsafe_allow_html=True
+        )
 
     if page == "Dashboard":
         show_dashboard()
@@ -56,7 +96,42 @@ def show_dashboard():
     # Get mock data
     movie_data = generate_movie_data()
 
-    # Create columns for metrics
+    # Live data section
+    if st.session_state.live_data:
+        st.subheader("Live Updates")
+        latest_data = st.session_state.live_data[-1]
+
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric(
+                "Latest Sentiment Score",
+                f"{latest_data['sentiment_score']:.2f}",
+                delta=f"{(latest_data['sentiment_score'] - 0.75):.2f}"
+            )
+        with col2:
+            st.metric(
+                "Recent Reviews",
+                latest_data['review_count'],
+                delta="new"
+            )
+        with col3:
+            st.metric(
+                "Social Buzz Score",
+                latest_data['social_buzz_score'],
+                delta="trending"
+            )
+
+        # Live sentiment trend
+        live_df = pd.DataFrame(st.session_state.live_data)
+        fig_live = px.line(
+            live_df,
+            x='timestamp',
+            y='sentiment_score',
+            title='Real-time Sentiment Trend'
+        )
+        st.plotly_chart(fig_live, use_container_width=True)
+
+    # Static metrics
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -237,3 +312,5 @@ def show_predictive_analytics():
 
 if __name__ == "__main__":
     main()
+    # Start WebSocket connection
+    asyncio.run(connect_websocket())
