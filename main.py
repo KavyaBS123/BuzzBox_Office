@@ -71,7 +71,8 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select a page",
-        ["Dashboard", "Advanced Sentiment Analysis", "Demographics", "Predictive Analytics"]
+        ["Dashboard", "Advanced Sentiment Analysis", "Demographics", 
+         "Predictive Analytics", "Trailer Generator"]
     )
 
     # Live data indicator
@@ -87,6 +88,8 @@ def main():
         show_sentiment_analysis()
     elif page == "Predictive Analytics":
         show_predictive_analytics()
+    elif page == "Trailer Generator":
+        show_trailer_generator()
     else:
         show_demographics()
 
@@ -308,6 +311,10 @@ def show_demographics():
 def show_predictive_analytics():
     st.header("Predictive Analytics")
     st.write("This page will eventually contain predictive analytics.") #Placeholder
+
+def show_trailer_generator():
+    st.header("AI Trailer Generator")
+    st.write("Redirecting to the trailer generator page...")
 
 
 if __name__ == "__main__":
