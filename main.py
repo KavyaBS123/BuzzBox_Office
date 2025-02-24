@@ -38,13 +38,15 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select a page",
-        ["Dashboard", "Advanced Sentiment Analysis", "Demographics"]
+        ["Dashboard", "Advanced Sentiment Analysis", "Demographics", "Predictive Analytics"]
     )
 
     if page == "Dashboard":
         show_dashboard()
     elif page == "Advanced Sentiment Analysis":
         show_sentiment_analysis()
+    elif page == "Predictive Analytics":
+        show_predictive_analytics()
     else:
         show_demographics()
 
@@ -227,6 +229,11 @@ def show_demographics():
         title="Geographical Distribution"
     )
     st.plotly_chart(fig_location, use_container_width=True)
+
+def show_predictive_analytics():
+    st.header("Predictive Analytics")
+    st.write("This page will eventually contain predictive analytics.") #Placeholder
+
 
 if __name__ == "__main__":
     main()
