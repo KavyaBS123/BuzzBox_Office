@@ -1,38 +1,54 @@
 import pandas as pd
 import numpy as np
+from datetime import datetime, timedelta
+
+def generate_movie_titles():
+    prefixes = ["The", "A", "Rise of", "Return of", "Legacy of", "Dawn of", "Fall of"]
+    nouns = ["Kingdom", "Empire", "Hero", "Legend", "Warrior", "Champion", "Mystery"]
+    adjectives = ["Lost", "Hidden", "Last", "Eternal", "Dark", "Golden", "Secret"]
+    locations = ["Earth", "Moon", "Stars", "City", "World", "Paradise", "Realm"]
+
+    titles = []
+    for p in prefixes:
+        for n in nouns:
+            titles.append(f"{p} {n}")
+        for a in adjectives:
+            titles.append(f"{p} {a} {np.random.choice(locations)}")
+    return titles
 
 def generate_movie_data():
-    return {
-        "movies": [
-            {
-                "title": "The Space Adventure",
-                "release_date": "2024-06-15",
-                "genre": "Sci-Fi",
-                "sentiment_score": 0.85,
-                "review_count": 1200,
-                "positive_reviews": 950,
-                "negative_reviews": 250
-            },
-            {
-                "title": "Love in Paris",
-                "release_date": "2024-07-01",
-                "genre": "Romance",
-                "sentiment_score": 0.75,
-                "review_count": 800,
-                "positive_reviews": 600,
-                "negative_reviews": 200
-            },
-            {
-                "title": "The Last Detective",
-                "release_date": "2024-05-30",
-                "genre": "Mystery",
-                "sentiment_score": 0.92,
-                "review_count": 1500,
-                "positive_reviews": 1380,
-                "negative_reviews": 120
-            }
-        ]
-    }
+    # Generate realistic movie data
+    np.random.seed(42)
+    base_date = datetime(2024, 1, 1)
+    genres = ["Action", "Drama", "Comedy", "Sci-Fi", "Horror", "Romance", "Thriller", 
+             "Adventure", "Fantasy", "Animation", "Documentary", "Mystery"]
+
+    movies = []
+    titles = generate_movie_titles()
+
+    for i, title in enumerate(titles[:100]):  # Take first 100 titles
+        # Generate realistic release date
+        days_offset = np.random.randint(-30, 365)  # Movies from last month to next year
+        release_date = (base_date + timedelta(days=days_offset)).strftime("%Y-%m-%d")
+
+        # Generate realistic sentiment and review counts
+        sentiment_score = np.clip(np.random.normal(0.75, 0.15), 0.3, 0.98)
+        review_count = int(np.random.normal(1000, 500))
+        positive_ratio = sentiment_score  # Use sentiment score as ratio for positive reviews
+
+        movies.append({
+            "title": title,
+            "release_date": release_date,
+            "genre": np.random.choice(genres),
+            "sentiment_score": sentiment_score,
+            "review_count": review_count,
+            "positive_reviews": int(review_count * positive_ratio),
+            "negative_reviews": int(review_count * (1 - positive_ratio)),
+            "budget": np.random.randint(30, 200),  # Budget in millions
+            "social_buzz_score": np.random.randint(60, 100)
+        })
+
+    return {"movies": movies}
 
 def generate_demographic_data():
     return {
@@ -47,7 +63,9 @@ def generate_demographic_data():
             "North America": 45,
             "Europe": 30,
             "Asia": 15,
-            "Others": 10
+            "Latin America": 7,
+            "Africa": 2,
+            "Oceania": 1
         },
         "gender": {
             "Male": 52,
@@ -57,10 +75,12 @@ def generate_demographic_data():
     }
 
 def generate_competitor_data():
+    movies = generate_movie_data()["movies"][:5]  # Get first 5 movies for competitor analysis
+
     return pd.DataFrame({
-        "Movie": ["The Space Adventure", "Cosmic Journey", "Star Voyager"],
-        "Budget": [100, 85, 120],
-        "Social_Buzz": [85, 70, 90],
-        "Sentiment_Score": [0.85, 0.75, 0.88],
-        "Expected_ROI": [2.5, 2.0, 2.8]
+        "Movie": [m["title"] for m in movies],
+        "Budget": [m["budget"] for m in movies],
+        "Social_Buzz": [m["social_buzz_score"] for m in movies],
+        "Sentiment_Score": [m["sentiment_score"] for m in movies],
+        "Expected_ROI": [round(np.random.uniform(1.5, 3.2), 2) for _ in range(5)]
     })
