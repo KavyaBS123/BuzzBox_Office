@@ -1127,16 +1127,21 @@ name = "repl-nix-workspace"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "decorator" },
     { name = "fastapi" },
+    { name = "imageio" },
+    { name = "imageio-ffmpeg" },
     { name = "moviepy" },
     { name = "numpy" },
     { name = "openai" },
     { name = "pandas" },
     { name = "pillow" },
     { name = "plotly" },
+    { name = "proglog" },
     { name = "requests" },
     { name = "scikit-learn" },
     { name = "streamlit" },
+    { name = "tqdm" },
     { name = "twilio" },
     { name = "uvicorn" },
     { name = "websockets" },
@@ -1144,16 +1149,21 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "decorator", specifier = ">=5.2.1" },
     { name = "fastapi", specifier = ">=0.115.8" },
+    { name = "imageio", specifier = ">=2.37.0" },
+    { name = "imageio-ffmpeg", specifier = ">=0.6.0" },
     { name = "moviepy", specifier = ">=2.1.2" },
     { name = "numpy", specifier = ">=2.2.3" },
     { name = "openai", specifier = ">=1.64.0" },
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pillow", specifier = ">=10.4.0" },
     { name = "plotly", specifier = ">=6.0.0" },
+    { name = "proglog", specifier = ">=0.1.10" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
     { name = "streamlit", specifier = ">=1.42.2" },
+    { name = "tqdm", specifier = ">=4.67.1" },
     { name = "twilio", specifier = ">=9.4.6" },
     { name = "uvicorn", specifier = ">=0.34.0" },
     { name = "websockets", specifier = ">=15.0" },
